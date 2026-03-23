@@ -1,7 +1,65 @@
+# -------------------
+# NODE MODULES
+# -------------------
 node_modules/
+
+# -------------------
+# ENV FILES (IMPORTANT)
+# -------------------
 .env
 .env.*
+backend/.env
+habitax-app/.env
+
+# -------------------
+# LOG FILES
+# -------------------
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# -------------------
+# OS FILES
+# -------------------
+.DS_Store
+Thumbs.db
+
+# -------------------
+# BUILD / DIST
+# -------------------
 dist/
 build/
-*.log
-.DS_Store
+
+# -------------------
+# EXPO / REACT NATIVE
+# -------------------
+.expo/
+.expo-shared/
+web-build/
+dist/
+android/
+ios/
+
+# -------------------
+# CACHE
+# -------------------
+.cache/
+.expo-cache/
+
+# -------------------
+# MISC
+# -------------------
+coverage/
+*.tgz
+
+# -------------------
+# VS CODE (optional)
+# -------------------
+.vscode/
+
+# -------------------
+# TEMP FILES
+# -------------------
+*.tmp
+*.temp
