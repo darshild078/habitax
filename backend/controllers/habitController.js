@@ -48,7 +48,49 @@ exports.getHabits = async (req, res) => {
     }
   };
 
-  exports.getDashboard = async (req, res) => {
+  exports.deleteHabit = async (req, res) => {
+    try {
+      const habit = await Habit.findById(req.params.id);
+  
+      if (!habit) return res.status(404).json({ msg: "Habit not found" });
+  
+      // Ensure user owns this habit
+      if (habit.userId.toString() !== req.user) {
+        return res.status(401).json({ msg: "Unauthorized" });
+      }
+  
+      await habit.deleteOne();
+  
+      res.json({ msg: "Habit deleted successfully" });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  };
+
+  exports.updateHabit = async (req, res) => {
+    try {
+      const habit = await Habit.findById(req.params.id);
+  
+      if (!habit) return res.status(404).json({ msg: "Habit not found" });
+  
+      // Ownership check
+      if (habit.userId.toString() !== req.user) {
+        return res.status(401).json({ msg: "Unauthorized" });
+      }
+  
+      const updatedHabit = await Habit.findByIdAndUpdate(
+        req.params.id,
+        req.body,
+        { new: true }
+      );
+  
+      res.json(updatedHabit);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  };
+
+exports.getDashboard = async (req, res) => {
     try {
       const habits = await Habit.find({ userId: req.user });
   
