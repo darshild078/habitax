@@ -47,3 +47,44 @@ exports.getHabits = async (req, res) => {
       res.status(500).json({ error: err.message });
     }
   };
+
+  exports.getDashboard = async (req, res) => {
+    try {
+      const habits = await Habit.find({ userId: req.user });
+  
+      let totalYearlyCost = 0;
+      let totalHours = 0;
+  
+      let worstHabit = null;
+      let maxCost = 0;
+  
+      habits.forEach(habit => {
+        const calc = calculateHabit(habit);
+  
+        totalYearlyCost += calc.yearlyCost;
+        totalHours += calc.yearlyHours;
+  
+        if (calc.yearlyCost > maxCost) {
+          maxCost = calc.yearlyCost;
+          worstHabit = {
+            name: habit.name,
+            yearlyCost: calc.yearlyCost
+          };
+        }
+      });
+  
+      const totalMonthlyCost = Math.round(totalYearlyCost / 12);
+      const totalDaysLost = Number((totalHours / 24).toFixed(1));
+  
+      res.json({
+        totalYearlyCost: Math.round(totalYearlyCost),
+        totalMonthlyCost,
+        totalHoursLost: Number(totalHours.toFixed(1)),
+        totalDaysLost,
+        worstHabit
+      });
+  
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  };
