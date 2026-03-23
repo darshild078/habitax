@@ -1,13 +1,20 @@
 import { useState } from "react";
 import HomeScreen from "./src/screens/HomeScreen";
 import AddHabitScreen from "./src/screens/AddHabitScreen";
+import LoginScreen from "./src/screens/LoginScreen";
 
 export default function App() {
-  const [screen, setScreen] = useState("home");
+  const [screen, setScreen] = useState("login");
 
-  return screen === "home" ? (
-    <HomeScreen goToAdd={() => setScreen("add")} />
-  ) : (
-    <AddHabitScreen goBack={() => setScreen("home")} />
-  );
+  if (screen === "login") {
+    return <LoginScreen goToHome={() => setScreen("home")} />;
+  }
+
+  if (screen === "home") {
+    return <HomeScreen goToAdd={() => setScreen("add")} />;
+  }
+
+  if (screen === "add") {
+    return <AddHabitScreen goBack={() => setScreen("home")} />;
+  }
 }
