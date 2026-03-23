@@ -1,9 +1,9 @@
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import colors from '../theme/colors';
 import typography from '../theme/typography';
 import spacing, { radius, shadow } from '../theme/spacing';
 
-// Maps category keywords to icon emoji + color
 function getHabitStyle(name) {
   const n = name.toLowerCase();
   if (n.includes('coffee') || n.includes('tea'))
@@ -27,7 +27,7 @@ const frequencyLabel = {
   monthly: 'Monthly',
 };
 
-export default function HabitCard({ habit, onDelete }) {
+export default function HabitCard({ habit, onDelete, onEdit }) {
   const { emoji, bg, dot } = getHabitStyle(habit.name);
 
   const confirmDelete = () => {
@@ -39,45 +39,67 @@ export default function HabitCard({ habit, onDelete }) {
 
   return (
     <View style={styles.card}>
-      {/* Icon Circle */}
-      <View style={[styles.iconCircle, { backgroundColor: bg }]}>
-        <Text style={styles.iconEmoji}>{emoji}</Text>
-      </View>
 
-      {/* Content */}
-      <View style={styles.content}>
-        <View style={styles.topRow}>
+      {/* Top section: icon + main info */}
+      <View style={styles.topSection}>
+        <View style={[styles.iconCircle, { backgroundColor: bg }]}>
+          <Text style={styles.iconEmoji}>{emoji}</Text>
+        </View>
+
+        <View style={styles.info}>
           <Text style={styles.habitName} numberOfLines={1}>{habit.name}</Text>
-          <Text style={styles.cost}>₹{habit.yearlyCost}/yr</Text>
-        </View>
-
-        <View style={styles.bottomRow}>
-          <View style={[styles.badge, { backgroundColor: bg }]}>
-            <View style={[styles.badgeDot, { backgroundColor: dot }]} />
-            <Text style={[styles.badgeText, { color: dot }]}>
-              {frequencyLabel[habit.frequencyType] || habit.frequencyType}
-            </Text>
+          <View style={styles.metaRow}>
+            <View style={[styles.badge, { backgroundColor: bg }]}>
+              <View style={[styles.badgeDot, { backgroundColor: dot }]} />
+              <Text style={[styles.badgeText, { color: dot }]}>
+                {frequencyLabel[habit.frequencyType] || habit.frequencyType}
+              </Text>
+            </View>
+            <Text style={styles.insight} numberOfLines={1}>{habit.insight}</Text>
           </View>
-          <Text style={styles.insight} numberOfLines={2}>{habit.insight}</Text>
-        </View>
-
-        {/* Monthly Cost row */}
-        <View style={styles.statsRow}>
-          <Text style={styles.statItem}>₹{habit.monthlyCost}/mo</Text>
-          <Text style={styles.statDivider}>·</Text>
-          <Text style={styles.statItem}>{habit.yearlyHours}h/yr</Text>
         </View>
       </View>
 
-      {/* Delete button — large red circle, easy to tap */}
-      <TouchableOpacity
-        onPress={confirmDelete}
-        style={styles.deleteBtn}
-        activeOpacity={0.7}
-        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-      >
-        <Text style={styles.deleteX}>✕</Text>
-      </TouchableOpacity>
+      {/* Divider */}
+      <View style={styles.divider} />
+
+      {/* Bottom section: stats + actions */}
+      <View style={styles.bottomSection}>
+        {/* Cost stats */}
+        <View style={styles.statsRow}>
+          <View style={styles.statChip}>
+            <Text style={styles.statValue}>₹{habit.yearlyCost.toLocaleString('en-IN')}</Text>
+            <Text style={styles.statLabel}>per year</Text>
+          </View>
+          <View style={[styles.statChip, { marginHorizontal: spacing.sm }]}>
+            <Text style={styles.statValue}>₹{habit.monthlyCost.toLocaleString('en-IN')}</Text>
+            <Text style={styles.statLabel}>per month</Text>
+          </View>
+          <View style={styles.statChip}>
+            <Text style={styles.statValue}>{habit.yearlyHours}h</Text>
+            <Text style={styles.statLabel}>lost/year</Text>
+          </View>
+        </View>
+
+        {/* Action buttons */}
+        <View style={styles.actions}>
+          <TouchableOpacity
+            onPress={() => onEdit(habit)}
+            style={styles.editBtn}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="pencil-outline" size={16} color={colors.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={confirmDelete}
+            style={styles.deleteBtn}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="trash-outline" size={16} color={colors.danger} />
+          </TouchableOpacity>
+        </View>
+      </View>
+
     </View>
   );
 }
@@ -86,50 +108,42 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
-    padding: spacing.md,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
     marginBottom: spacing.sm + 4,
     ...shadow.soft,
+    overflow: 'hidden',
+  },
+
+  // Top
+  topSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.md,
+    paddingBottom: spacing.sm,
   },
   iconCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
+    width: 52,
+    height: 52,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: spacing.md,
     flexShrink: 0,
   },
   iconEmoji: {
-    fontSize: 22,
+    fontSize: 24,
   },
-  content: {
+  info: {
     flex: 1,
-  },
-  topRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
   },
   habitName: {
     ...typography.subheading,
     color: colors.textPrimary,
-    flex: 1,
-    marginRight: spacing.sm,
+    marginBottom: 6,
   },
-  cost: {
-    ...typography.subheading,
-    color: colors.danger,
-    flexShrink: 0,
-  },
-  bottomRow: {
+  metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    flexWrap: 'wrap',
     gap: spacing.sm,
-    marginBottom: 6,
   },
   badge: {
     flexDirection: 'row',
@@ -137,51 +151,77 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: radius.pill,
+    flexShrink: 0,
   },
   badgeDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    marginRight: 5,
+    marginRight: 4,
   },
   badgeText: {
     ...typography.caption,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   insight: {
     ...typography.caption,
     color: colors.textSecondary,
-    flex: 1,
     fontStyle: 'italic',
+    flex: 1,
+  },
+
+  // Divider
+  divider: {
+    height: 1,
+    backgroundColor: colors.divider,
+    marginHorizontal: spacing.md,
+  },
+
+  // Bottom
+  bottomSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm + 2,
+    backgroundColor: colors.surfaceAlt,
   },
   statsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
   },
-  statItem: {
+  statChip: {
+    alignItems: 'center',
+  },
+  statValue: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
+  statLabel: {
     ...typography.caption,
     color: colors.textMuted,
+    fontSize: 10,
   },
-  statDivider: {
-    ...typography.caption,
-    color: colors.textMuted,
+  actions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
   },
-  // Delete button — visible red pill
-  deleteBtn: {
-    marginLeft: spacing.sm,
-    backgroundColor: colors.dangerLight,
-    borderRadius: radius.pill,
-    width: 32,
-    height: 32,
+  editBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
-    flexShrink: 0,
   },
-  deleteX: {
-    fontSize: 14,
-    color: colors.danger,
-    fontWeight: '800',
-    lineHeight: 18,
+  deleteBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: colors.dangerLight,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

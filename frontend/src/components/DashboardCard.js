@@ -9,27 +9,27 @@ export default function DashboardCard({ dashboard }) {
   return (
     <View style={styles.card}>
       {/* Top: total burned */}
-      <Text style={styles.label}>Total burned this year 🔥</Text>
-      <Text style={styles.bigAmount}>₹{dashboard.totalYearlyCost.toLocaleString('en-IN')}</Text>
+      <Text style={styles.label}>You paid this tax 🔥</Text>
+      <Text style={styles.bigAmount}>₹{(dashboard.totalYearlyCost || 0).toLocaleString('en-IN')}</Text>
 
       {/* Stats row */}
       <View style={styles.statsRow}>
         <View style={styles.statBox}>
-          <Text style={styles.statValue}>₹{dashboard.totalMonthlyCost.toLocaleString('en-IN')}</Text>
+          <Text style={styles.statValue}>₹{(dashboard.totalMonthlyCost || 0).toLocaleString('en-IN')}</Text>
           <Text style={styles.statLabel}>Per Month</Text>
         </View>
 
         <View style={styles.divider} />
 
         <View style={styles.statBox}>
-          <Text style={styles.statValue}>{dashboard.totalHoursLost}h</Text>
+          <Text style={styles.statValue}>{dashboard.totalHoursLost || 0}h</Text>
           <Text style={styles.statLabel}>Hours Lost</Text>
         </View>
 
         <View style={styles.divider} />
 
         <View style={styles.statBox}>
-          <Text style={styles.statValue}>{dashboard.totalDaysLost}d</Text>
+          <Text style={styles.statValue}>{dashboard.totalDaysLost || 0}d</Text>
           <Text style={styles.statLabel}>Days Lost</Text>
         </View>
       </View>
@@ -39,8 +39,8 @@ export default function DashboardCard({ dashboard }) {
         <View style={styles.worstBadge}>
           <Text style={styles.worstIcon}>💀</Text>
           <Text style={styles.worstText} numberOfLines={1}>
-            Worst: <Text style={styles.worstHighlight}>{dashboard.worstHabit.name}</Text>
-            {' '}costs you ₹{dashboard.worstHabit.yearlyCost.toLocaleString('en-IN')}/yr
+            Worst drain: <Text style={styles.worstHighlight}>{dashboard.worstHabit.name}</Text>
+            {' '}is bleeding you ₹{(dashboard.worstHabit.yearlyCost || 0).toLocaleString('en-IN')}/yr
           </Text>
         </View>
       )}

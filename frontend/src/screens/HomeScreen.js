@@ -1,5 +1,9 @@
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, StatusBar, ScrollView, Alert } from 'react-native';
-import { useEffect, useState } from 'react';
+import {
+  View, Text, TouchableOpacity, StyleSheet, SafeAreaView,
+  StatusBar, ScrollView, Alert, RefreshControl
+} from 'react-native';
+import { useEffect, useState, useCallback } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 import API from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import HabitCard from '../components/HabitCard';
@@ -9,28 +13,40 @@ import typography from '../theme/typography';
 import spacing, { radius, shadow } from '../theme/spacing';
 
 function getGreeting() {
-  const hour = new Date().getHours();
-  if (hour < 12) return 'Good Morning';
-  if (hour < 17) return 'Good Afternoon';
+  const h = new Date().getHours();
+  if (h < 12) return 'Good Morning';
+  if (h < 17) return 'Good Afternoon';
   return 'Good Evening';
 }
 
 function getDateString() {
   return new Date().toLocaleDateString('en-IN', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
   });
 }
 
-export default function HomeScreen({ goToAdd, goToLogin }) {
+function getAvatarColor(name) {
+  const palette = ['#F97316','#EF4444','#8B5CF6','#3B82F6','#10B981','#F59E0B','#EC4899','#6366F1'];
+  if (!name) return palette[0];
+  return palette[name.charCodeAt(0) % palette.length];
+}
+
+function getInitials(name) {
+  if (!name) return '?';
+  const parts = name.trim().split(' ');
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return name[0].toUpperCase();
+}
+
+export default function HomeScreen({ goToAdd, goToLogin, goToEdit, goToProfile }) {
   const [dashboard, setDashboard] = useState(null);
   const [habits, setHabits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [userName, setUserName] = useState('');
+  const [networkError, setNetworkError] = useState(false);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const [dashRes, habitRes] = await Promise.all([
         API.get('/habits/dashboard'),
@@ -38,15 +54,26 @@ export default function HomeScreen({ goToAdd, goToLogin }) {
       ]);
       setDashboard(dashRes.data);
       setHabits(habitRes.data);
+      setNetworkError(false);
     } catch (err) {
+      if (!err.response) setNetworkError(true);
       console.log(err.response?.data || err.message);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, []);
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    fetchData();
+    // Fetch user name for avatar
+    API.get('/auth/profile').then(res => setUserName(res.data.name || '')).catch(() => {});
+  }, []);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchData();
+  };
 
   const handleDelete = async (id) => {
     try {
@@ -57,12 +84,15 @@ export default function HomeScreen({ goToAdd, goToLogin }) {
     }
   };
 
-  const handleLogout = async () => {
+  const handleEdit = (habit) => {
+    goToEdit(habit);
+  };
+
+  const handleLogout = () => {
     Alert.alert('Log Out', 'Are you sure?', [
       { text: 'Cancel', style: 'cancel' },
       {
-        text: 'Log Out',
-        style: 'destructive',
+        text: 'Log Out', style: 'destructive',
         onPress: async () => {
           await AsyncStorage.removeItem('token');
           goToLogin();
@@ -85,53 +115,91 @@ export default function HomeScreen({ goToAdd, goToLogin }) {
   return (
     <SafeAreaView style={styles.safe}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
+
+      {/* Fixed Header */}
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.greeting}>{getGreeting()} 👋</Text>
+          <Text style={styles.date}>{getDateString()}</Text>
+        </View>
+        <View style={styles.headerActions}>
+          {/* Profile avatar */}
+          <TouchableOpacity onPress={goToProfile} style={styles.avatarBtn}>
+            <View style={[styles.avatarCircle, { backgroundColor: getAvatarColor(userName) }]}>
+              <Text style={styles.avatarInitials}>{getInitials(userName)}</Text>
+            </View>
+          </TouchableOpacity>
+          {/* Logout */}
+          <TouchableOpacity onPress={handleLogout} style={styles.iconBtn}>
+            <Ionicons name="log-out-outline" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Network error banner */}
+      {networkError && (
+        <View style={styles.networkBanner}>
+          <Ionicons name="cloud-offline-outline" size={14} color="#FFFFFF" />
+          <Text style={styles.networkBannerText}>No internet connection — showing cached data</Text>
+        </View>
+      )}
+
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
+        }
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.greeting}>{getGreeting()} 👋</Text>
-            <Text style={styles.date}>{getDateString()}</Text>
-          </View>
-          <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
-            <Text style={styles.logoutText}>Log Out</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Dashboard Card */}
+        {/* Dashboard */}
         <DashboardCard dashboard={dashboard} />
 
-        {/* Habits Section Header */}
+        {/* Habits Section */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Your Habits</Text>
-          <Text style={styles.habitCount}>{habits.length} tracked</Text>
+          <View style={styles.countBadge}>
+            <Text style={styles.countText}>{habits.length}</Text>
+          </View>
         </View>
 
         {/* Empty state */}
         {habits.length === 0 && (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyEmoji}>🌱</Text>
-            <Text style={styles.emptyTitle}>No habits yet</Text>
+            <View style={styles.emptyIconWrap}>
+              <Text style={styles.emptyEmoji}>🌱</Text>
+            </View>
+            <Text style={styles.emptyTitle}>Nothing taxing you yet</Text>
             <Text style={styles.emptySubtitle}>
-              Tap the + button to track your first habit and see what it's really costing you.
+              Add your first drain. See what it really costs your life.
             </Text>
+            <TouchableOpacity style={styles.emptyBtn} onPress={goToAdd}>
+              <Ionicons name="add-circle-outline" size={18} color={colors.primary} />
+              <Text style={styles.emptyBtnText}>Log My First Tax</Text>
+            </TouchableOpacity>
           </View>
         )}
 
         {/* Habit Cards */}
         {habits.map((habit) => (
-          <HabitCard key={habit._id} habit={habit} onDelete={handleDelete} />
+          <HabitCard
+            key={habit._id}
+            habit={habit}
+            onDelete={handleDelete}
+            onEdit={handleEdit}
+          />
         ))}
 
-        {/* Bottom padding for FAB */}
-        <View style={{ height: 88 }} />
+        <View style={{ height: 96 }} />
       </ScrollView>
 
-      {/* Floating Action Button */}
+      {/* FAB */}
       <TouchableOpacity style={styles.fab} onPress={goToAdd} activeOpacity={0.85}>
-        <Text style={styles.fabIcon}>+</Text>
+        <Ionicons name="add" size={32} color={colors.textOnPrimary} />
       </TouchableOpacity>
     </SafeAreaView>
   );
@@ -147,25 +215,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  loadingEmoji: {
-    fontSize: 48,
-    marginBottom: spacing.md,
-  },
-  loadingText: {
-    ...typography.body,
-    color: colors.textSecondary,
-  },
-  scroll: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-  },
+  loadingEmoji: { fontSize: 48, marginBottom: spacing.md },
+  loadingText: { ...typography.body, color: colors.textSecondary },
 
-  // Header
+  // Header (fixed outside scroll)
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: spacing.lg,
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.md,
+    backgroundColor: colors.background,
   },
   greeting: {
     ...typography.title,
@@ -176,47 +237,97 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 2,
   },
-  logoutBtn: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.pill,
-    backgroundColor: colors.surfaceAlt,
-    borderWidth: 1,
-    borderColor: colors.border,
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
   },
-  logoutText: {
+  networkBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#333333',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+  },
+  networkBannerText: {
     ...typography.caption,
-    color: colors.textSecondary,
-    fontWeight: '600',
+    color: '#FFFFFF',
+    flex: 1,
+  },
+  avatarBtn: {
+    marginRight: 2,
+  },
+  avatarCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarInitials: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
+  },
+  iconBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadow.soft,
   },
 
-  // Section
+  scroll: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+  },
+
+  // Section header
   sectionHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: spacing.md,
+    gap: spacing.sm,
   },
   sectionTitle: {
     ...typography.heading,
     color: colors.textPrimary,
   },
-  habitCount: {
+  countBadge: {
+    backgroundColor: colors.primary,
+    borderRadius: radius.pill,
+    minWidth: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+  },
+  countText: {
     ...typography.caption,
-    color: colors.textSecondary,
-    fontWeight: '600',
+    color: colors.textOnPrimary,
+    fontWeight: '700',
   },
 
   // Empty state
   emptyState: {
     alignItems: 'center',
-    paddingVertical: spacing.xxl,
-    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xl,
+    paddingHorizontal: spacing.lg,
   },
-  emptyEmoji: {
-    fontSize: 52,
-    marginBottom: spacing.md,
+  emptyIconWrap: {
+    width: 100,
+    height: 100,
+    borderRadius: 30,
+    backgroundColor: colors.accentGreenLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.lg,
   },
+  emptyEmoji: { fontSize: 48 },
   emptyTitle: {
     ...typography.heading,
     color: colors.textPrimary,
@@ -227,6 +338,22 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
+    marginBottom: spacing.lg,
+  },
+  emptyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm + 4,
+    borderRadius: radius.pill,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    backgroundColor: colors.primaryLight,
+  },
+  emptyBtnText: {
+    ...typography.label,
+    color: colors.primary,
   },
 
   // FAB
@@ -241,11 +368,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     ...shadow.medium,
-  },
-  fabIcon: {
-    fontSize: 32,
-    color: colors.textOnPrimary,
-    lineHeight: 38,
-    fontWeight: '300',
   },
 });
