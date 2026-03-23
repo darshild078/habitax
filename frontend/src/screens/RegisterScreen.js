@@ -6,24 +6,32 @@ import colors from '../theme/colors';
 import typography from '../theme/typography';
 import spacing, { radius, shadow } from '../theme/spacing';
 
-export default function LoginScreen({ goToHome, goToRegister }) {
+export default function RegisterScreen({ goToHome, goToLogin }) {
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [focusedField, setFocusedField] = useState(null);
 
-  const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert('Missing fields', 'Please enter your email and password.');
+  const handleRegister = async () => {
+    if (!name || !email || !password) {
+      Alert.alert('Missing fields', 'Please fill in all fields.');
+      return;
+    }
+    if (password.length < 6) {
+      Alert.alert('Weak password', 'Password must be at least 6 characters.');
       return;
     }
     try {
       setLoading(true);
+      // 1. Register
+      await API.post('/auth/register', { name, email, password });
+      // 2. Auto-login
       const res = await API.post('/auth/login', { email, password });
       await AsyncStorage.setItem('token', res.data.token);
       goToHome();
     } catch (err) {
-      Alert.alert('Login Failed', err.response?.data?.msg || 'Something went wrong');
+      Alert.alert('Register Failed', err.response?.data?.msg || 'Something went wrong');
     } finally {
       setLoading(false);
     }
@@ -34,17 +42,30 @@ export default function LoginScreen({ goToHome, goToRegister }) {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
 
-          {/* Hero Section */}
+          {/* Hero */}
           <View style={styles.hero}>
             <Text style={styles.appIcon}>💸</Text>
             <Text style={styles.appName}>HabiTax</Text>
-            <Text style={styles.tagline}>Know what your habits cost you.</Text>
+            <Text style={styles.tagline}>Start tracking what you truly spend.</Text>
           </View>
 
           {/* Card */}
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Welcome back</Text>
-            <Text style={styles.cardSubtitle}>Sign in to your account</Text>
+            <Text style={styles.cardTitle}>Create account</Text>
+            <Text style={styles.cardSubtitle}>It's free, no credit card needed.</Text>
+
+            {/* Name */}
+            <Text style={styles.label}>Full Name</Text>
+            <TextInput
+              style={[styles.input, focusedField === 'name' && styles.inputFocused]}
+              value={name}
+              onChangeText={setName}
+              placeholder="Darsh Shah"
+              placeholderTextColor={colors.textMuted}
+              autoCapitalize="words"
+              onFocus={() => setFocusedField('name')}
+              onBlur={() => setFocusedField(null)}
+            />
 
             {/* Email */}
             <Text style={styles.label}>Email</Text>
@@ -66,28 +87,28 @@ export default function LoginScreen({ goToHome, goToRegister }) {
               style={[styles.input, focusedField === 'password' && styles.inputFocused]}
               value={password}
               onChangeText={setPassword}
-              placeholder="Your password"
+              placeholder="Min. 6 characters"
               placeholderTextColor={colors.textMuted}
               secureTextEntry
               onFocus={() => setFocusedField('password')}
               onBlur={() => setFocusedField(null)}
             />
 
-            {/* Login Button */}
+            {/* Register Button */}
             <TouchableOpacity
               style={[styles.primaryBtn, loading && styles.primaryBtnDisabled]}
-              onPress={handleLogin}
+              onPress={handleRegister}
               disabled={loading}
               activeOpacity={0.85}
             >
-              <Text style={styles.primaryBtnText}>{loading ? 'Signing in...' : 'Sign In'}</Text>
+              <Text style={styles.primaryBtnText}>{loading ? 'Creating account...' : 'Create Account'}</Text>
             </TouchableOpacity>
 
-            {/* Register link */}
+            {/* Login link */}
             <View style={styles.footerRow}>
-              <Text style={styles.footerText}>Don't have an account? </Text>
-              <TouchableOpacity onPress={goToRegister}>
-                <Text style={styles.footerLink}>Register</Text>
+              <Text style={styles.footerText}>Already have an account? </Text>
+              <TouchableOpacity onPress={goToLogin}>
+                <Text style={styles.footerLink}>Sign In</Text>
               </TouchableOpacity>
             </View>
           </View>
