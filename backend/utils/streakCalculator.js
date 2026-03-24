@@ -54,6 +54,10 @@ function calculateStreak(habit) {
   const diffMs = lastLogged ? (todayUTC.getTime() - lastLogged.getTime()) : null;
   const isConsecutive = diffMs !== null && diffMs === MS_PER_DAY;
 
+  // Phase 3: detect streak break (gap > 1 day with a previous streak)
+  const streakBroken = !isConsecutive && (habit.currentStreak || 0) > 0 && lastLogged !== null;
+  const previousStreak = streakBroken ? (habit.currentStreak || 0) : 0;
+
   const currentStreak = isConsecutive ? habit.currentStreak + 1 : 1;
   const longestStreak = Math.max(habit.longestStreak || 0, currentStreak);
 
@@ -61,7 +65,9 @@ function calculateStreak(habit) {
     alreadyLogged: false,
     currentStreak,
     longestStreak,
-    todayUTC
+    todayUTC,
+    streakBroken,
+    previousStreak
   };
 }
 

@@ -1,9 +1,10 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
-const authRoutes = require("./routes/authRoutes");
+const authRoutes  = require("./routes/authRoutes");
 const habitRoutes = require("./routes/habitRoutes");
 const logRoutes   = require("./routes/logRoutes");
+const plantRoutes = require("./routes/plantRoutes");
 
 require("dotenv").config();
 
@@ -16,9 +17,10 @@ app.use(express.json());
 app.get("/", (req, res) => {
   res.send("API is running...");
 });
-app.use("/api/auth", authRoutes);
+app.use("/api/auth",   authRoutes);
 app.use("/api/habits", habitRoutes);
-app.use("/api/logs", logRoutes);
+app.use("/api/logs",   logRoutes);
+app.use("/api/plants", plantRoutes);
 
 const PORT = process.env.PORT || 5000;
 

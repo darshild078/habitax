@@ -1,6 +1,6 @@
 import {
   View, Text, TouchableOpacity, StyleSheet, SafeAreaView,
-  StatusBar, ScrollView, Alert, RefreshControl
+  StatusBar, ScrollView, Alert, RefreshControl, Image
 } from 'react-native';
 import { useEffect, useState, useCallback } from 'react';
 import { Ionicons } from '@expo/vector-icons';
@@ -45,6 +45,7 @@ export default function HomeScreen({ goToAdd, goToLogin, goToEdit, goToProfile, 
   const [refreshing, setRefreshing] = useState(false);
   const [userName, setUserName] = useState('');
   const [networkError, setNetworkError] = useState(false);
+  const [energyOrbs, setEnergyOrbs] = useState(0);
 
   const fetchData = useCallback(async () => {
     try {
@@ -66,8 +67,11 @@ export default function HomeScreen({ goToAdd, goToLogin, goToEdit, goToProfile, 
 
   useEffect(() => {
     fetchData();
-    // Fetch user name for avatar
-    API.get('/auth/profile').then(res => setUserName(res.data.name || '')).catch(() => {});
+    // Fetch user profile (name + orbs)
+    API.get('/auth/profile').then(res => {
+      setUserName(res.data.name || '');
+      setEnergyOrbs(res.data.energyOrbs ?? 0);
+    }).catch(() => {});
   }, []);
 
   const onRefresh = () => {
@@ -123,6 +127,11 @@ export default function HomeScreen({ goToAdd, goToLogin, goToEdit, goToProfile, 
           <Text style={styles.date}>{getDateString()}</Text>
         </View>
         <View style={styles.headerActions}>
+          {/* Orb counter */}
+          <View style={styles.orbPill}>
+            <Text style={styles.orbPillIcon}>⚡</Text>
+            <Text style={styles.orbPillCount}>{energyOrbs}</Text>
+          </View>
           {/* Profile avatar */}
           <TouchableOpacity onPress={goToProfile} style={styles.avatarBtn}>
             <View style={[styles.avatarCircle, { backgroundColor: getAvatarColor(userName) }]}>
@@ -257,6 +266,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
+  },
+  orbPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFDE7',
+    borderRadius: radius.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderWidth: 1,
+    borderColor: '#FFE082',
+    gap: 3,
+  },
+  orbPillIcon: { fontSize: 14 },
+  orbPillCount: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#F57F17',
   },
   networkBanner: {
     flexDirection: 'row',

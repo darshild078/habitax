@@ -1,10 +1,20 @@
-const Habit   = require("../models/Habit");
+const Habit    = require("../models/Habit");
 const HabitLog = require("../models/HabitLog");
+const User     = require("../models/User");
 const { calculateStreak, toUTCMidnight } = require("../utils/streakCalculator");
+const { checkStreakAchievements, checkOrbAchievements } = require("../utils/achievementChecker");
+
+// ── Streak milestone bonus map ──────────────────────────────
+const STREAK_MILESTONES = {
+  7:   3,
+  14:  5,
+  30:  10,
+  60:  20,
+  100: 50,
+};
 
 // ─────────────────────────────────────────────────────────────
 // POST /api/logs/mark/:habitId
-// Mark a habit as done for today. Idempotent within the same day.
 // ─────────────────────────────────────────────────────────────
 exports.markDone = async (req, res) => {
   try {
@@ -14,21 +24,42 @@ exports.markDone = async (req, res) => {
     if (habit.userId.toString() !== req.user)
       return res.status(401).json({ msg: "Unauthorized" });
 
-    // ── Streak calculation (pure function — no DB access) ──
     const result = calculateStreak(habit);
 
     if (result.alreadyLogged) {
-      return res.status(409).json({ msg: "Already logged today" });
+      const user = await User.findById(req.user).select("energyOrbs");
+      return res.status(409).json({
+        msg: "Already logged today",
+        energyOrbs: user?.energyOrbs ?? 0
+      });
     }
 
-    const { currentStreak, longestStreak, todayUTC } = result;
+    const { currentStreak, longestStreak, todayUTC, streakBroken, previousStreak } = result;
+
+    // ── Phase 3: Record streak loss ──
+    if (streakBroken && previousStreak > 0) {
+      await User.findByIdAndUpdate(req.user, {
+        lastStreakLostDate: new Date(),
+        lastStreakLostHabit: habit.name
+      });
+    }
+
+    // ── Milestone bonus ──
+    const milestoneBonus = STREAK_MILESTONES[currentStreak] || 0;
+    const orbsEarnedNow = 1 + milestoneBonus;
 
     // ── Persist log entry ──
-    // findOneAndUpdate with upsert so concurrent requests don't create duplicates
     const log = await HabitLog.findOneAndUpdate(
       { habitId: habit._id, date: todayUTC },
-      { userId: req.user, status: "done" },
+      { userId: req.user, status: "done", orbEarned: orbsEarnedNow },
       { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+
+    // ── Award orbs: energyOrbs (wallet) + totalOrbsEarned (lifetime) ──
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user,
+      { $inc: { energyOrbs: orbsEarnedNow, totalOrbsEarned: orbsEarnedNow } },
+      { new: true, select: "energyOrbs totalOrbsEarned" }
     );
 
     // ── Update habit streak fields ──
@@ -37,20 +68,50 @@ exports.markDone = async (req, res) => {
     habit.lastLoggedDate = todayUTC;
     await habit.save();
 
-    res.json({
-      msg: "Habit marked done!",
+    // ── Phase 3: Check achievements (async, non-blocking) ──
+    const [streakAch, orbAch] = await Promise.all([
+      checkStreakAchievements(req.user, currentStreak),
+      checkOrbAchievements(req.user, updatedUser.totalOrbsEarned)
+    ]);
+    const newAchievements = [...streakAch, ...orbAch];
+
+    // ── Build response ──
+    const response = {
+      msg: milestoneBonus > 0
+        ? `${currentStreak}-day streak! +${orbsEarnedNow} Energy Orbs!`
+        : "You earned an Energy Orb!",
       currentStreak,
       longestStreak,
+      energyOrbs: updatedUser.energyOrbs,
       log
-    });
+    };
+
+    if (milestoneBonus > 0) {
+      response.milestone = {
+        streak: currentStreak,
+        bonusOrbs: milestoneBonus,
+        totalEarned: orbsEarnedNow
+      };
+    }
+
+    if (newAchievements.length > 0) {
+      response.newAchievements = newAchievements.map(a => ({
+        key: a.key,
+        label: a.label,
+        description: a.description
+      }));
+    }
+
+    res.json(response);
   } catch (err) {
-    // Duplicate key on HabitLog (race condition) — treat as already logged
     if (err.code === 11000) {
       return res.status(409).json({ msg: "Already logged today" });
     }
     res.status(500).json({ error: err.message });
   }
 };
+
+
 
 // ─────────────────────────────────────────────────────────────
 // GET /api/logs/history/:habitId?days=30

@@ -7,6 +7,14 @@ const userSchema = new mongoose.Schema({
     unique: true
   },
   password: String,
+
+  // Phase 2: Energy Orb wallet (current balance — goes up and down)
+  energyOrbs: { type: Number, default: 0 },
+
+  // Phase 3: Lifetime stats
+  totalOrbsEarned:    { type: Number, default: 0 },  // only increments — used for leveling
+  lastStreakLostDate:  { type: Date,   default: null },
+  lastStreakLostHabit: { type: String, default: null }
 }, { timestamps: true });
 
 module.exports = mongoose.model("User", userSchema);

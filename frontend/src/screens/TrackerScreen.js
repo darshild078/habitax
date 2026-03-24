@@ -5,6 +5,7 @@ import {
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { getTodayStatus, markHabitDone } from '../services/habitService';
+import AchievementToast from '../components/AchievementToast';
 import colors from '../theme/colors';
 import typography from '../theme/typography';
 import spacing, { radius, shadow } from '../theme/spacing';
@@ -94,10 +95,22 @@ function HabitRow({ habit, onMark }) {
 // ── TrackerScreen ─────────────────────────────────────────────
 
 export default function TrackerScreen({ goBack }) {
-  const [habits, setHabits]       = useState([]);
-  const [loading, setLoading]     = useState(true);
+  const [habits, setHabits]         = useState([]);
+  const [loading, setLoading]       = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [marking, setMarking]     = useState(null); // habitId being marked
+  const [marking, setMarking]       = useState(null);
+  const [orbToast, setOrbToast]     = useState('');
+  const [currentAchievement, setCurrentAchievement] = useState(null);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  const showOrbToast = (msg) => {
+    setOrbToast(msg);
+    Animated.sequence([
+      Animated.timing(fadeAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
+      Animated.delay(1600),
+      Animated.timing(fadeAnim, { toValue: 0, duration: 300, useNativeDriver: true }),
+    ]).start(() => setOrbToast(''));
+  };
 
   const load = useCallback(async () => {
     try {
@@ -130,7 +143,6 @@ export default function TrackerScreen({ goBack }) {
 
     try {
       const result = await markHabitDone(habitId);
-      // Patch with server-confirmed streak values
       setHabits(prev =>
         prev.map(h =>
           h._id === habitId
@@ -140,6 +152,18 @@ export default function TrackerScreen({ goBack }) {
             : h
         )
       );
+      // Show milestone or regular orb toast
+      if (result.milestone) {
+        showOrbToast(`${result.milestone.streak}-day streak! +${result.milestone.totalEarned} orbs! (${result.energyOrbs} total)`);
+      } else {
+        showOrbToast(`+1 Energy Orb! (${result.energyOrbs ?? '?'} total)`);
+      }
+
+      // Phase 3: Show achievement toast if any unlocked
+      if (result.newAchievements && result.newAchievements.length > 0) {
+        // Show first achievement (queue if multiple)
+        setTimeout(() => setCurrentAchievement(result.newAchievements[0]), 2000);
+      }
     } catch (err) {
       if (err.response?.status === 409) {
         // Already logged — keep optimistic state (it's correct)
@@ -193,6 +217,13 @@ export default function TrackerScreen({ goBack }) {
           </Text>
         </View>
       </View>
+
+      {/* Orb toast */}
+      {orbToast !== '' && (
+        <Animated.View style={[styles.orbToast, { opacity: fadeAnim }]}>
+          <Text style={styles.orbToastText}>{orbToast}</Text>
+        </Animated.View>
+      )}
 
       {/* Progress bar */}
       {habits.length > 0 && (
@@ -257,6 +288,12 @@ export default function TrackerScreen({ goBack }) {
 
         <View style={{ height: 32 }} />
       </ScrollView>
+
+      {/* Achievement unlock toast */}
+      <AchievementToast
+        achievement={currentAchievement}
+        onDone={() => setCurrentAchievement(null)}
+      />
     </SafeAreaView>
   );
 }
@@ -390,4 +427,21 @@ const styles = StyleSheet.create({
   emptyEmoji: { fontSize: 48, marginBottom: spacing.md },
   emptyTitle: { ...typography.heading, color: colors.textPrimary, marginBottom: spacing.sm },
   emptySub: { ...typography.body, color: colors.textSecondary, textAlign: 'center' },
+
+  // Orb toast (⚡ feedback)
+  orbToast: {
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.sm,
+    backgroundColor: '#1A1A1A',
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  orbToastText: {
+    ...typography.label,
+    color: '#FFE082',
+    fontWeight: '700',
+    textAlign: 'center',
+  },
 });

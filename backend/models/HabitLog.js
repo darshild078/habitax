@@ -24,7 +24,9 @@ const habitLogSchema = new mongoose.Schema({
     type: String,
     enum: ["done", "skipped"],
     default: "done"
-  }
+  },
+  // Phase 2: orb awarded for this log entry (0 or 1)
+  orbEarned: { type: Number, default: 0 }
 }, { timestamps: true });
 
 // Compound index: fast history queries per habit sorted by most recent
