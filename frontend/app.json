@@ -19,13 +19,18 @@
       "package": "com.habitax.app",
       "versionCode": 1,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/habitax_logo.png",
         "backgroundColor": "#FAF8F5"
       }
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": []
+    "plugins": [],
+    "extra": {
+      "eas": {
+        "projectId": "3dc963ed-ccf7-4085-bbea-280065e4c2c9"
+      }
+    }
   }
 }

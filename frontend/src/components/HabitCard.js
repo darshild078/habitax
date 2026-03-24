@@ -65,7 +65,7 @@ export default function HabitCard({ habit, onDelete, onEdit }) {
 
       {/* Bottom section: stats + actions */}
       <View style={styles.bottomSection}>
-        {/* Cost stats */}
+        {/* Cost stats + streak */}
         <View style={styles.statsRow}>
           <View style={styles.statChip}>
             <Text style={styles.statValue}>₹{habit.yearlyCost.toLocaleString('en-IN')}</Text>
@@ -79,6 +79,11 @@ export default function HabitCard({ habit, onDelete, onEdit }) {
             <Text style={styles.statValue}>{habit.yearlyHours}h</Text>
             <Text style={styles.statLabel}>lost/year</Text>
           </View>
+          {(habit.currentStreak > 0) && (
+            <View style={[styles.statChip, styles.streakChip]}>
+              <Text style={styles.streakValue}>🔥 {habit.currentStreak}d</Text>
+            </View>
+          )}
         </View>
 
         {/* Action buttons */}
@@ -202,6 +207,21 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.textMuted,
     fontSize: 10,
+  },
+  // Streak pill within stats row
+  streakChip: {
+    marginLeft: spacing.sm,
+    backgroundColor: '#FFF3E0',
+    borderRadius: radius.pill,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  streakValue: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.primaryDark,
   },
   actions: {
     flexDirection: 'row',

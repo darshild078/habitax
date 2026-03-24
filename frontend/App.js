@@ -9,6 +9,7 @@ import HomeScreen from './src/screens/HomeScreen';
 import AddHabitScreen from './src/screens/AddHabitScreen';
 import EditHabitScreen from './src/screens/EditHabitScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
+import TrackerScreen from './src/screens/TrackerScreen';
 
 export default function App() {
   const [screen, setScreen] = useState('loading');
@@ -78,8 +79,12 @@ export default function App() {
         goToLogin={() => setScreen('login')}
         goToEdit={goToEdit}
         goToProfile={() => setScreen('profile')}
+        goToTracker={() => setScreen('tracker')}
       />
     );
+
+  if (screen === 'tracker')
+    return <TrackerScreen goBack={() => setScreen('home')} />;
 
   if (screen === 'add')
     return <AddHabitScreen goBack={() => setScreen('home')} />;

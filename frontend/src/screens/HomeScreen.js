@@ -38,7 +38,7 @@ function getInitials(name) {
   return name[0].toUpperCase();
 }
 
-export default function HomeScreen({ goToAdd, goToLogin, goToEdit, goToProfile }) {
+export default function HomeScreen({ goToAdd, goToLogin, goToEdit, goToProfile, goToTracker }) {
   const [dashboard, setDashboard] = useState(null);
   const [habits, setHabits] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -158,6 +158,22 @@ export default function HomeScreen({ goToAdd, goToLogin, goToEdit, goToProfile }
       >
         {/* Dashboard */}
         <DashboardCard dashboard={dashboard} />
+
+        {/* Track Today Banner */}
+        <TouchableOpacity
+          style={styles.trackBanner}
+          onPress={goToTracker}
+          activeOpacity={0.85}
+        >
+          <View style={styles.trackBannerLeft}>
+            <Text style={styles.trackBannerEmoji}>📅</Text>
+            <View>
+              <Text style={styles.trackBannerTitle}>Track Today</Text>
+              <Text style={styles.trackBannerSub}>Mark habits done &amp; build streaks</Text>
+            </View>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={colors.primary} />
+        </TouchableOpacity>
 
         {/* Habits Section */}
         <View style={styles.sectionHeader}>
@@ -279,6 +295,36 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     ...shadow.soft,
+  },
+
+  // Track Today Banner
+  trackBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.primaryLight,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+    borderWidth: 1,
+    borderColor: '#FFD9B8',
+  },
+  trackBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    flex: 1,
+  },
+  trackBannerEmoji: { fontSize: 28 },
+  trackBannerTitle: {
+    ...typography.label,
+    color: colors.primaryDark,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  trackBannerSub: {
+    ...typography.caption,
+    color: colors.primary,
   },
 
   scroll: {
