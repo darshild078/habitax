@@ -1,8 +1,11 @@
 const Habit    = require("../models/Habit");
 const HabitLog = require("../models/HabitLog");
 const User     = require("../models/User");
+const Activity = require("../models/Activity");
 const { calculateStreak, toUTCMidnight } = require("../utils/streakCalculator");
 const { checkStreakAchievements, checkOrbAchievements } = require("../utils/achievementChecker");
+
+const SOLO_BREAK_PENALTY = 2;
 
 // ── Streak milestone bonus map ──────────────────────────────
 const STREAK_MILESTONES = {
@@ -36,12 +39,24 @@ exports.markDone = async (req, res) => {
 
     const { currentStreak, longestStreak, todayUTC, streakBroken, previousStreak } = result;
 
-    // ── Phase 3: Record streak loss ──
+    // ── Phase 4: Streak Shield / Solo Penalty / Loss Tracking ──
+    let shieldUsed = false;
     if (streakBroken && previousStreak > 0) {
-      await User.findByIdAndUpdate(req.user, {
-        lastStreakLostDate: new Date(),
-        lastStreakLostHabit: habit.name
-      });
+      const user = await User.findById(req.user);
+      if (user.streakShields > 0) {
+        // Use shield instead of penalty
+        user.streakShields -= 1;
+        shieldUsed = true;
+        await user.save();
+      } else {
+        // Solo penalty: lose orbs
+        await User.findByIdAndUpdate(req.user, {
+          $inc: { energyOrbs: -SOLO_BREAK_PENALTY },
+          lastStreakLostDate: new Date(),
+          lastStreakLostHabit: habit.name
+        });
+        await User.updateOne({ _id: req.user, energyOrbs: { $lt: 0 } }, { energyOrbs: 0 });
+      }
     }
 
     // ── Milestone bonus ──
@@ -101,6 +116,18 @@ exports.markDone = async (req, res) => {
         description: a.description
       }));
     }
+
+    if (shieldUsed) {
+      response.shieldUsed = true;
+      response.msg = "Streak Shield protected you!";
+    }
+
+    // ── Phase 4: Post activity (fire and forget) ──
+    Activity.create({
+      userId: req.user,
+      type: milestoneBonus > 0 ? "streak_milestone" : "habit_done",
+      data: { habitName: habit.name, streak: currentStreak, orbs: orbsEarnedNow }
+    }).catch(() => {}); // non-blocking
 
     res.json(response);
   } catch (err) {

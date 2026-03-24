@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, Alert } from 'react-native';
+import * as Linking from 'expo-linking';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { registerUnauthorizedHandler } from './src/services/authEvents';
+import API from './src/services/api';
 
 // Screens
 import SplashLoader    from './src/components/SplashLoader';
@@ -14,6 +16,7 @@ import EditHabitScreen from './src/screens/EditHabitScreen';
 import ProfileScreen   from './src/screens/ProfileScreen';
 import TrackerScreen   from './src/screens/TrackerScreen';
 import ForestScreen    from './src/screens/ForestScreen';
+import SocialScreen    from './src/screens/SocialScreen';
 
 // Theme
 import colors from './src/theme/colors';
@@ -27,6 +30,7 @@ import typography from './src/theme/typography';
 const TABS = [
   { key: 'home',    label: 'Home',    icon: '🏠' },
   { key: 'tracker', label: 'Track',   icon: '✅' },
+  { key: 'social',  label: 'Social',  icon: '👥' },
   { key: 'forest',  label: 'Forest',  icon: '🌳' },
   { key: 'profile', label: 'Profile', icon: '👤' },
 ];
@@ -130,7 +134,40 @@ export default function App() {
       }
     };
     bootstrap();
-  }, []);
+
+    // ── Deep Link Listener for Friend Links ──
+    const handleDeepLink = async ({ url }) => {
+      if (url != null) {
+        try {
+          // Extract userId from URL: "habitax://friend/USER_ID"
+          const route = url.replace(/.*?:\/\//g, '');
+          const parts = route.split('/');
+          
+          if (parts[0] === 'friend' && parts[1]) {
+            const fromUserId = parts[1];
+            
+            // Call backend to create instant friendship
+            const res = await API.post('/friends/accept-link', { fromUserId });
+            
+            // Show success and navigate to social tab
+            Alert.alert('Success', res.data.msg, [
+              { text: 'View Friends', onPress: () => setActiveTab('social') }
+            ]);
+            
+            // Set screen to tabs if not already there
+            if (screen !== 'tabs') {
+              setScreen('tabs');
+            }
+          }
+        } catch (err) {
+          Alert.alert('Error', err.response?.data?.msg || 'Failed to add friend');
+        }
+      }
+    };
+
+    const subscription = Linking.addEventListener('url', handleDeepLink);
+    return () => subscription.remove();
+  }, [screen]);
 
   // ── Handlers ──
   const goToEdit = (habit) => { setSelectedHabit(habit); setScreen('edit'); };
@@ -171,10 +208,12 @@ export default function App() {
             goToTracker={() => setScreen('tracker')}
           />
         );
-      case 'forest':
-        return <ForestScreen />;
       case 'tracker':
         return <TrackerScreen goBack={() => setActiveTab('home')} />;
+      case 'social':
+        return <SocialScreen />;
+      case 'forest':
+        return <ForestScreen />;
       case 'profile':
         return <ProfileScreen goBack={() => setActiveTab('home')} goToLogin={() => setScreen('login')} />;
       default:

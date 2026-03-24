@@ -12,9 +12,12 @@ const userSchema = new mongoose.Schema({
   energyOrbs: { type: Number, default: 0 },
 
   // Phase 3: Lifetime stats
-  totalOrbsEarned:    { type: Number, default: 0 },  // only increments — used for leveling
+  totalOrbsEarned:    { type: Number, default: 0 },
   lastStreakLostDate:  { type: Date,   default: null },
-  lastStreakLostHabit: { type: String, default: null }
+  lastStreakLostHabit: { type: String, default: null },
+
+  // Phase 4: Social economy
+  streakShields: { type: Number, default: 0 }
 }, { timestamps: true });
 
 module.exports = mongoose.model("User", userSchema);

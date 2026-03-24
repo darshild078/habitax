@@ -46,15 +46,27 @@ export default function HomeScreen({ goToAdd, goToLogin, goToEdit, goToProfile, 
   const [userName, setUserName] = useState('');
   const [networkError, setNetworkError] = useState(false);
   const [energyOrbs, setEnergyOrbs] = useState(0);
+  const [groupSummary, setGroupSummary] = useState(null);
 
   const fetchData = useCallback(async () => {
     try {
-      const [dashRes, habitRes] = await Promise.all([
+      const [dashRes, habitRes, groupRes] = await Promise.all([
         API.get('/habits/dashboard'),
         API.get('/habits/get'),
+        API.get('/groups').catch(() => ({ data: { groups: [], invites: [] } })),
       ]);
       setDashboard(dashRes.data);
       setHabits(habitRes.data);
+      // Extract yesterday's group status for summary
+      if (groupRes.data.groups && groupRes.data.groups.length > 0) {
+        const summaries = groupRes.data.groups.slice(0, 1).map(g => ({
+          name: g.name,
+          totalMembers: g.members?.length || 0,
+          completed: g.todayStatus?.filter(m => m.done).length || 0,
+          streak: g.groupStreak || 0
+        }));
+        setGroupSummary(summaries[0] || null);
+      }
       setNetworkError(false);
     } catch (err) {
       if (!err.response) setNetworkError(true);
@@ -167,6 +179,27 @@ export default function HomeScreen({ goToAdd, goToLogin, goToEdit, goToProfile, 
       >
         {/* Dashboard */}
         <DashboardCard dashboard={dashboard} />
+
+        {/* Daily Group Summary Card */}
+        {groupSummary && (
+          <View style={styles.summarycardContainer}>
+            <View style={styles.summaryCardHeader}>
+              <Text style={styles.summaryCardTitle}>Group Status</Text>
+              <View style={[styles.streakBadge, { backgroundColor: groupSummary.completed === groupSummary.totalMembers ? '#10B981' : '#F59E0B' }]}>
+                <Text style={styles.streakBadgeText}>{groupSummary.streak}d</Text>
+              </View>
+            </View>
+            <Text style={styles.summaryCardText}>
+              {groupSummary.name}: {groupSummary.completed}/{groupSummary.totalMembers} members completed
+            </Text>
+            {groupSummary.completed < groupSummary.totalMembers && (
+              <Text style={styles.summaryCardWarning}>⚠️ {groupSummary.totalMembers - groupSummary.completed} member(s) still need to complete</Text>
+            )}
+            {groupSummary.completed === groupSummary.totalMembers && (
+              <Text style={styles.summaryCardGood}>✅ Great! Everyone completed today</Text>
+            )}
+          </View>
+        )}
 
         {/* Track Today Banner */}
         <TouchableOpacity
@@ -440,5 +473,56 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     ...shadow.medium,
+  },
+
+  // Summary Card
+  summarycardContainer: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.primary,
+    ...shadow.soft,
+  },
+  summaryCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  summaryCardTitle: {
+    ...typography.label,
+    color: colors.textPrimary,
+    fontWeight: '700',
+  },
+  streakBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: radius.pill,
+  },
+  streakBadgeText: {
+    ...typography.caption,
+    color: '#FFF',
+    fontWeight: '700',
+    fontSize: 10,
+  },
+  summaryCardText: {
+    ...typography.body,
+    color: colors.textPrimary,
+    marginBottom: spacing.xs,
+    fontSize: 13,
+  },
+  summaryCardWarning: {
+    ...typography.caption,
+    color: '#F59E0B',
+    marginTop: spacing.xs,
+    fontWeight: '600',
+  },
+  summaryCardGood: {
+    ...typography.caption,
+    color: '#10B981',
+    marginTop: spacing.xs,
+    fontWeight: '600',
   },
 });
