@@ -8,6 +8,7 @@ const plantRoutes   = require("./routes/plantRoutes");
 const friendRoutes  = require("./routes/friendRoutes");
 const groupRoutes   = require("./routes/groupRoutes");
 const socialRoutes  = require("./routes/socialRoutes");
+const insightRoutes = require("./routes/insightRoutes");
 
 require("dotenv").config();
 
@@ -20,13 +21,14 @@ app.use(express.json());
 app.get("/", (req, res) => {
   res.send("API is running...");
 });
-app.use("/api/auth",    authRoutes);
-app.use("/api/habits",  habitRoutes);
-app.use("/api/logs",    logRoutes);
-app.use("/api/plants",  plantRoutes);
-app.use("/api/friends", friendRoutes);
-app.use("/api/groups",  groupRoutes);
-app.use("/api/social",  socialRoutes);
+app.use("/api/auth",     authRoutes);
+app.use("/api/habits",   habitRoutes);
+app.use("/api/logs",     logRoutes);
+app.use("/api/plants",   plantRoutes);
+app.use("/api/friends",  friendRoutes);
+app.use("/api/groups",   groupRoutes);
+app.use("/api/social",   socialRoutes);
+app.use("/api/insights", insightRoutes);
 
 const PORT = process.env.PORT || 5000;
 

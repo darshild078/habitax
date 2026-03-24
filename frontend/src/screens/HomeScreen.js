@@ -8,6 +8,8 @@ import API from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import HabitCard from '../components/HabitCard';
 import DashboardCard from '../components/DashboardCard';
+import PerformanceCard from '../components/PerformanceCard';
+import InsightsCarousel from '../components/InsightsCarousel';
 import colors from '../theme/colors';
 import typography from '../theme/typography';
 import spacing, { radius, shadow } from '../theme/spacing';
@@ -47,13 +49,15 @@ export default function HomeScreen({ goToAdd, goToLogin, goToEdit, goToProfile, 
   const [networkError, setNetworkError] = useState(false);
   const [energyOrbs, setEnergyOrbs] = useState(0);
   const [groupSummary, setGroupSummary] = useState(null);
+  const [insights, setInsights] = useState(null);
 
   const fetchData = useCallback(async () => {
     try {
-      const [dashRes, habitRes, groupRes] = await Promise.all([
+      const [dashRes, habitRes, groupRes, insightRes] = await Promise.all([
         API.get('/habits/dashboard'),
         API.get('/habits/get'),
         API.get('/groups').catch(() => ({ data: { groups: [], invites: [] } })),
+        API.get('/insights/summary').catch(() => ({ data: { insights: [] } })),
       ]);
       setDashboard(dashRes.data);
       setHabits(habitRes.data);
@@ -66,6 +70,10 @@ export default function HomeScreen({ goToAdd, goToLogin, goToEdit, goToProfile, 
           streak: g.groupStreak || 0
         }));
         setGroupSummary(summaries[0] || null);
+      }
+      // Set insights (use first one as primary)
+      if (insightRes.data.insights && insightRes.data.insights.length > 0) {
+        setInsights(insightRes.data.insights);
       }
       setNetworkError(false);
     } catch (err) {
@@ -179,6 +187,16 @@ export default function HomeScreen({ goToAdd, goToLogin, goToEdit, goToProfile, 
       >
         {/* Dashboard */}
         <DashboardCard dashboard={dashboard} />
+
+        {/* Performance Card + Insights */}
+        {insights && insights.length > 0 && (
+          <>
+            <View style={styles.insightsSection}>
+              <PerformanceCard insights={insights[0]} />
+              <InsightsCarousel insights={insights} />
+            </View>
+          </>
+        )}
 
         {/* Daily Group Summary Card */}
         {groupSummary && (
@@ -389,6 +407,10 @@ const styles = StyleSheet.create({
   scroll: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
+  },
+
+  insightsSection: {
+    marginBottom: spacing.lg,
   },
 
   // Section header
