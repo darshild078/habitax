@@ -3,7 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { triggerUnauthorized } from "./authEvents";
 
 const API = axios.create({
-  baseURL: "http://192.168.29.211:5000/api",
+  baseURL: "https://habitax.onrender.com/api", // http://192.168.29.211:5000
   timeout: 10000, // 10s timeout — detects network issues faster
 });
 

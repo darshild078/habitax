@@ -16,7 +16,7 @@
       "bundleIdentifier": "com.habitax.app"
     },
     "android": {
-      "package": "com.habitax.app",
+      "package": "com.darshil.habitax.app",
       "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/habitax_logo.png",

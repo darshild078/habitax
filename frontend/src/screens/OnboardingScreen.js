@@ -1,27 +1,34 @@
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Dimensions, Animated, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Dimensions, Animated } from 'react-native';
 import { useRef, useState } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import colors from '../theme/colors';
 import typography from '../theme/typography';
-import spacing, { radius } from '../theme/spacing';
+import spacing, { radius, shadow } from '../theme/spacing';
 
 const { width } = Dimensions.get('window');
 
 const SLIDES = [
   {
-    image: require('../../assets/onboarding_cost.png'),
-    title: 'See the real cost',
-    subtitle: "Every daily habit has a hidden yearly price tag. Coffee? Rs.73,000/year. We'll show you the truth.",
+    emoji: '📊',
+    title: 'Track Your Daily Habits',
+    subtitle: 'Log habits every day and watch your streaks grow. Build momentum and consistency.',
+    features: ['Daily tracking', 'Streak counter', 'Progress insights'],
+    color: '#3B82F6',
   },
   {
-    image: require('../../assets/onboarding_time.png'),
-    title: 'Time is money too',
-    subtitle: "You're not just burning cash - you're burning hours. We track both so you see the full picture.",
+    emoji: '🌳',
+    title: 'Earn & Grow Your Forest',
+    subtitle: 'Complete habits to earn Energy Orbs. Watch your virtual forest evolve as you stay committed.',
+    features: ['Collect orbs', 'Grow plants', 'Unlock achievements'],
+    color: '#10B981',
   },
   {
-    image: require('../../assets/onboarding_insight.png'),
-    title: 'Get savage insights',
-    subtitle: "You burned more than a month of rent. Cold, honest, motivating. That's HabiTax.",
+    emoji: '👥',
+    title: 'Share & Stay Accountable',
+    subtitle: 'Connect with friends, join group challenges, and nudge each other to stay on track.',
+    features: ['Add friends', 'Group habits', 'Social feed'],
+    color: '#8B5CF6',
   },
 ];
 
@@ -63,9 +70,24 @@ export default function OnboardingScreen({ goToLogin }) {
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } }], { useNativeDriver: false })}
         renderItem={({ item }) => (
           <View style={[styles.slide, { width }]}>
-            <Image source={item.image} style={styles.slideImage} resizeMode="contain" />
+            {/* Emoji Icon */}
+            <View style={[styles.emojiBox, { backgroundColor: `${item.color}15` }]}>
+              <Text style={styles.emoji}>{item.emoji}</Text>
+            </View>
+
+            {/* Title & Subtitle */}
             <Text style={styles.title}>{item.title}</Text>
             <Text style={styles.subtitle}>{item.subtitle}</Text>
+
+            {/* Features List */}
+            <View style={styles.featuresBox}>
+              {item.features.map((feature, idx) => (
+                <View key={idx} style={styles.featureRow}>
+                  <View style={[styles.featureDot, { backgroundColor: item.color }]} />
+                  <Text style={styles.featureText}>{feature}</Text>
+                </View>
+              ))}
+            </View>
           </View>
         )}
       />
@@ -123,23 +145,57 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.lg,
+    justifyContent: 'flex-start',
   },
-  slideImage: {
-    width: 220,
-    height: 220,
-    marginBottom: spacing.xl,
+  emojiBox: {
+    width: 100,
+    height: 100,
+    borderRadius: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.lg,
+  },
+  emoji: {
+    fontSize: 48,
   },
   title: {
     ...typography.title,
     color: colors.textPrimary,
     textAlign: 'center',
     marginBottom: spacing.md,
+    fontSize: 26,
   },
   subtitle: {
     ...typography.body,
     color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 24,
+    marginBottom: spacing.xl,
+    paddingHorizontal: spacing.md,
+  },
+  featuresBox: {
+    width: '100%',
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    gap: spacing.md,
+    ...shadow.soft,
+  },
+  featureRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  featureDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  featureText: {
+    ...typography.body,
+    color: colors.textPrimary,
+    fontSize: 14,
+    fontWeight: '500',
   },
   dots: {
     flexDirection: 'row',
@@ -161,6 +217,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     paddingVertical: spacing.md,
     alignItems: 'center',
+    ...shadow.medium,
   },
   primaryBtnText: {
     ...typography.button,
